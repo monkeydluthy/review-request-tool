@@ -68,6 +68,8 @@
 
   function applyBranding(client) {
     document.title = `Review request — ${client.bizName}`;
+    const appleTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+    if (appleTitle) appleTitle.setAttribute("content", client.bizName);
     if (client.accentColor) {
       document.documentElement.style.setProperty("--accent", client.accentColor);
       const theme = document.querySelector('meta[name="theme-color"]');
