@@ -48,7 +48,7 @@ Tokens inside draft strings, replaced at preview/send time:
 | URL | Business |
 |---|---|
 | `?client=toby` | Signature Tree and Home |
-| `?client=mna` | M&A Stump Grinding (swap in the real Google review link before going live) |
+| `?client=mna` | M&A Stump Grinding |
 
 ## SMS deep links
 

@@ -2,14 +2,14 @@
   "slug": "mna",
   "bizName": "M&A Stump Grinding",
   "ownerName": "Nick",
-  "reviewLink": "https://www.google.com/maps/search/?api=1&query=M%26A%20Stump%20Grinding%20Thonotosassa",
+  "reviewLink": "https://g.page/r/CXVIPFRcTuiaEBM/review",
   "phone": "8133255306",
   "accentColor": "#b45309",
   "tagline": "Fast, licensed stump removal.",
   "draftSource": {
     "agent": "review_funnel",
     "clientBrain": "mna",
-    "notes": "Placeholder drafts to prove a second client is a JSON file drop. Replace reviewLink with the real Google write-review URL before Nick uses this live."
+    "notes": "Text variants in Nick's voice. reviewLink is the live Google write-review URL."
   },
   "draftTemplates": {
     "first": [
