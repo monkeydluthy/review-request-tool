@@ -1,0 +1,26 @@
+{
+  "slug": "toby",
+  "bizName": "Signature Tree and Home",
+  "ownerName": "Toby",
+  "reviewLink": "https://g.page/r/CYNcZC8tnZqhEBM/review",
+  "phone": "8135164459",
+  "accentColor": "#2d6a4f",
+  "tagline": "Strong trees, safe home.",
+  "draftSource": {
+    "agent": "review_funnel",
+    "clientBrain": "signature_tree",
+    "notes": "Text variants adapted from approved Review Funnel REQUEST DRAFTS (2026-08-19). Tokens replace send-time values."
+  },
+  "draftTemplates": {
+    "first": [
+      "Hey {cust} — thanks for having us out to your place today. We'd really appreciate a quick review on Google if you got a chance. Here's the link: {link}\n\n—{owner}, {biz}",
+      "Hey {cust}, just wrapping up — thanks for trusting us with the job today. If you've got a minute, a Google review helps other Tampa Bay neighbors find us: {link}\n\n—{owner}, {biz}",
+      "Hey {cust} — appreciate you having the crew out today. A quick Google review means a lot: {link}\n\n—{owner}"
+    ],
+    "repeat": [
+      "Hey {cust}, thanks again for trusting us with your trees. We'd be grateful for a Google review: {link}\n\n—{owner}",
+      "Hey {cust} — always good working with you again. If you're willing, a Google review helps us keep serving neighbors around Tampa Bay: {link}\n\n—{owner}",
+      "Hey {cust}, thanks for calling us back. We'd love a quick Google review when you get a chance: {link}\n\n—{owner}, {biz}"
+    ]
+  }
+}

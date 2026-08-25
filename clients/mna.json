@@ -1,0 +1,24 @@
+{
+  "slug": "mna",
+  "bizName": "M&A Stump Grinding",
+  "ownerName": "Nick",
+  "reviewLink": "https://www.google.com/maps/search/?api=1&query=M%26A%20Stump%20Grinding%20Thonotosassa",
+  "phone": "8133255306",
+  "accentColor": "#b45309",
+  "tagline": "Fast, licensed stump removal.",
+  "draftSource": {
+    "agent": "review_funnel",
+    "clientBrain": "mna",
+    "notes": "Placeholder drafts to prove a second client is a JSON file drop. Replace reviewLink with the real Google write-review URL before Nick uses this live."
+  },
+  "draftTemplates": {
+    "first": [
+      "Hey {cust} — thanks for having us out today. If you've got a minute, a Google review helps other Tampa neighbors find us: {link}\n\n—{owner}, {biz}",
+      "Hey {cust}, appreciate you trusting us with the stump. A quick Google review means a lot: {link}\n\n—{owner}"
+    ],
+    "repeat": [
+      "Hey {cust}, thanks again for calling us back. We'd be grateful for a Google review: {link}\n\n—{owner}",
+      "Hey {cust} — always good grinding another one for you. If you're willing, a Google review helps us keep serving Tampa Bay: {link}\n\n—{owner}, {biz}"
+    ]
+  }
+}

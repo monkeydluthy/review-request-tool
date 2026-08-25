@@ -1,0 +1,17 @@
+{
+  "slug": "your-client-slug",
+  "bizName": "Business Name",
+  "ownerName": "Owner First Name",
+  "reviewLink": "https://g.page/r/YOUR_REVIEW_LINK/review",
+  "phone": "",
+  "accentColor": "#2d6a4f",
+  "tagline": "",
+  "draftTemplates": {
+    "first": [
+      "Hey {cust} — thanks for having us out today. We'd really appreciate a quick review on Google if you got a chance. Here's the link: {link}\n\n—{owner}, {biz}"
+    ],
+    "repeat": [
+      "{cust}, thanks again for trusting us with the job. We'd be grateful for a Google review: {link}\n\n—{owner}"
+    ]
+  }
+}
