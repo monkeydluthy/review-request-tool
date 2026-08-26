@@ -135,6 +135,14 @@ button, input, textarea { font: inherit; color: inherit; }
 .field-hint { font-size: 0.75rem; color: var(--subtle); }
 .field-error { font-size: 0.75rem; color: var(--danger); min-height: 1em; }
 
+.btn-contacts {
+  width: 100%;
+  min-height: var(--tap);
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+.btn-contacts[hidden] { display: none !important; }
+
 .grid-2 {
   display: grid;
   grid-template-columns: 1fr 1fr;

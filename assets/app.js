@@ -2,8 +2,7 @@
   "use strict";
 
   const app = document.getElementById("app");
-  const params = new URLSearchParams(window.location.search);
-  const slug = (params.get("client") || "").trim().toLowerCase();
+  const STORAGE_KEY = "lastClientSlug";
 
   const state = {
     client: null,
@@ -13,18 +12,113 @@
     phone: "",
   };
 
+  const { slug, fromUrl } = resolveSlug();
   boot();
+
+  function readSavedSlug() {
+    try {
+      return (localStorage.getItem(STORAGE_KEY) || "").trim().toLowerCase();
+    } catch {
+      return "";
+    }
+  }
+
+  function saveSlug(value) {
+    try {
+      localStorage.setItem(STORAGE_KEY, value);
+    } catch {
+      /* private mode / blocked storage */
+    }
+  }
+
+  function clearSavedSlug() {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function resolveSlug() {
+    const params = new URLSearchParams(window.location.search);
+    const fromQuery = (params.get("client") || "").trim().toLowerCase();
+    if (fromQuery) return { slug: fromQuery, fromUrl: true };
+    const saved = readSavedSlug();
+    return { slug: saved, fromUrl: false };
+  }
+
+  function rememberSlugInUrl(clientSlug) {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("client") === clientSlug) return;
+    url.searchParams.set("client", clientSlug);
+    history.replaceState({}, "", url);
+  }
+
+  function setDynamicManifest(clientSlug) {
+    const origin = window.location.origin;
+    const path = window.location.pathname.replace(/index\.html$/i, "") || "/";
+    const start = new URL(path, origin);
+    start.searchParams.set("client", clientSlug);
+    const iconBase = new URL(path, origin);
+
+    const manifest = {
+      name: "Review Request",
+      short_name: "Reviews",
+      start_url: start.href,
+      scope: new URL(path, origin).href,
+      display: "standalone",
+      background_color: "#0a1628",
+      theme_color: "#0a1628",
+      icons: [
+        {
+          src: new URL("assets/icon-192.png", iconBase).href,
+          sizes: "192x192",
+          type: "image/png",
+        },
+        {
+          src: new URL("assets/icon-512.png", iconBase).href,
+          sizes: "512x512",
+          type: "image/png",
+        },
+      ],
+    };
+
+    const blob = new Blob([JSON.stringify(manifest)], { type: "application/json" });
+    const blobUrl = URL.createObjectURL(blob);
+    let link = document.querySelector('link[rel="manifest"]');
+    if (!link) {
+      link = document.createElement("link");
+      link.rel = "manifest";
+      document.head.appendChild(link);
+    }
+    if (link.dataset.blobUrl) URL.revokeObjectURL(link.dataset.blobUrl);
+    link.dataset.blobUrl = blobUrl;
+    link.href = blobUrl;
+  }
+
+  function contactsPickerSupported() {
+    return (
+      "contacts" in navigator &&
+      "ContactsManager" in window &&
+      typeof navigator.contacts?.select === "function"
+    );
+  }
 
   async function boot() {
     if (!slug) {
       renderMissingSlug();
       return;
     }
+
+    if (!fromUrl) rememberSlugInUrl(slug);
+    setDynamicManifest(slug);
+
     try {
       const res = await fetch(`clients/${encodeURIComponent(slug)}.json`, {
         cache: "no-store",
       });
       if (!res.ok) {
+        if (res.status === 404 && !fromUrl) clearSavedSlug();
         renderUnknownClient(slug);
         return;
       }
@@ -34,6 +128,7 @@
         renderBadConfig(slug);
         return;
       }
+      saveSlug(slug);
       state.client = client;
       applyBranding(client);
       renderTool();
@@ -186,6 +281,7 @@
       <main class="sheet">
         <section>
           <div class="block-label">Customer</div>
+          <button type="button" class="btn btn-ghost btn-contacts" id="pick-contact" hidden>Add from contacts</button>
           <div class="grid-2">
             <div class="field">
               <label for="cust-name">First name</label>
@@ -248,6 +344,12 @@
     const phoneInput = document.getElementById("cust-phone");
     const copyBtn = document.getElementById("copy-text");
     const sendBtn = document.getElementById("open-messages");
+    const pickContactBtn = document.getElementById("pick-contact");
+
+    if (contactsPickerSupported() && pickContactBtn) {
+      pickContactBtn.hidden = false;
+      pickContactBtn.addEventListener("click", pickContact);
+    }
 
     nameInput.addEventListener("input", (e) => {
       state.name = e.target.value;
@@ -310,6 +412,45 @@
         copyBtn.textContent = "Copy text";
       }, 1600);
     });
+  }
+
+  function firstNameFromContact(contact) {
+    const raw = Array.isArray(contact.name) ? contact.name[0] : contact.name;
+    if (!raw) return "";
+    return String(raw).trim().split(/\s+/)[0] || "";
+  }
+
+  function phoneFromContact(contact) {
+    const raw = Array.isArray(contact.tel) ? contact.tel[0] : contact.tel;
+    if (!raw) return "";
+    return String(raw).replace(/[^\d+]/g, "");
+  }
+
+  async function pickContact() {
+    const nameInput = document.getElementById("cust-name");
+    const phoneInput = document.getElementById("cust-phone");
+    if (!nameInput || !phoneInput) return;
+    try {
+      const contacts = await navigator.contacts.select(["name", "tel"], { multiple: false });
+      const contact = contacts && contacts[0];
+      if (!contact) return;
+
+      const first = firstNameFromContact(contact);
+      if (first) {
+        state.name = first;
+        nameInput.value = first;
+        nameInput.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+
+      const tel = phoneFromContact(contact);
+      if (tel) {
+        state.phone = tel;
+        phoneInput.value = tel;
+        phoneInput.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    } catch {
+      /* permission denied, cancel, or picker failed — keep manual fields as-is */
+    }
   }
 
   function updateSendButton(ok) {
