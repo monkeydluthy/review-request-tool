@@ -10,6 +10,9 @@
     selectedIndex: 0,
     name: "",
     phone: "",
+    // Precomputed so the send-log POST can fire synchronously on click — see
+    // logReviewSend(). Recomputed whenever the phone changes.
+    customerHash: "",
   };
 
   const { slug, fromUrl } = resolveSlug();
@@ -138,6 +141,141 @@
     }
   }
 
+  // ---------------------------------------------------------------------
+  // Send logging (Phase 22, Nexus POST /api/v1/review-sends)
+  //
+  // Fires AFTER the SMS hand-off or the clipboard write, never before, and never
+  // in a way that can delay or block either. The tool's job is handing a
+  // pre-filled text to the owner; logging is bookkeeping. If Nexus is down, slow,
+  // misconfigured or rejecting, the owner sees nothing and the flow is unaffected.
+  // Every failure goes to console.debug and stops there.
+  // ---------------------------------------------------------------------
+
+  const NEXUS_BASE_URL = "https://nexus.digitaldynamicsolution.com";
+
+  // The server rejects labels holding a phone number or an email, and a 422 loses
+  // the whole event. A weird name should cost us the label, not the row.
+  const LABEL_LOOKS_LIKE_PHONE = /\d[\d\s().-]{5,}/;
+
+  async function sha256Hex(input) {
+    const bytes = new TextEncoder().encode(input);
+    const digest = await crypto.subtle.digest("SHA-256", bytes);
+    return Array.from(new Uint8Array(digest))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+  }
+
+  /**
+   * Dedup key for Nexus. SHA-256 of "{fpf_slug}:{E.164 phone}".
+   *
+   * Scoped by slug so the same phone under two clients cannot be correlated, and
+   * built from E.164 so it does not matter how the owner typed the number.
+   *
+   * THIS CONVENTION IS PERMANENT. Nexus stores the digest opaquely and never
+   * recomputes it, so changing the input string later silently orphans every row
+   * written before the change and breaks the cadence read-back (22.5).
+   *
+   * It is a stable key, not privacy protection: this runs in the browser over a
+   * phone-number space small enough to brute-force.
+   */
+  async function computeCustomerHash() {
+    const client = state.client;
+    const e164 = toE164(state.phone);
+    if (!client || !client.nexusClientSlug || !e164) return "";
+    if (!window.crypto || !window.crypto.subtle) return "";
+    try {
+      return await sha256Hex(`${client.nexusClientSlug}:${e164}`);
+    } catch (err) {
+      console.debug("[review-send] hash failed", err);
+      return "";
+    }
+  }
+
+  function refreshCustomerHash() {
+    computeCustomerHash().then((h) => {
+      state.customerHash = h;
+    });
+  }
+
+  function buildSendPayload(channel) {
+    const client = state.client;
+    if (!client || !client.nexusApiKey || !client.nexusClientSlug) return null;
+    if (!state.customerHash) return null;
+
+    const drafts = draftsForType();
+    const index = Math.max(0, Math.min(state.selectedIndex, drafts.length - 1));
+    const payload = {
+      client_slug: client.nexusClientSlug,
+      customer_hash: state.customerHash,
+      template_variant: state.customerType,
+      variant_index: index,
+      channel,
+      timestamp: new Date().toISOString(),
+    };
+
+    const label = state.name.trim().slice(0, 64);
+    if (label && !label.includes("@") && !LABEL_LOOKS_LIKE_PHONE.test(label)) {
+      payload.customer_label = label;
+    }
+    return payload;
+  }
+
+  function postSendPayload(payload) {
+    const base = state.client.nexusBaseUrl || NEXUS_BASE_URL;
+    // keepalive, not sendBeacon: the request needs the X-Review-Send-Key header,
+    // and sendBeacon cannot set one. keepalive lets it survive the sms: hand-off.
+    return fetch(`${base}/api/v1/review-sends`, {
+      method: "POST",
+      keepalive: true,
+      headers: {
+        "Content-Type": "application/json",
+        "X-Review-Send-Key": state.client.nexusApiKey,
+      },
+      body: JSON.stringify(payload),
+    })
+      .then((res) => {
+        if (!res.ok) {
+          console.debug("[review-send] rejected", res.status);
+          return;
+        }
+        console.debug("[review-send] logged", payload.channel);
+      })
+      .catch((err) => console.debug("[review-send] network error", err));
+  }
+
+  /**
+   * Synchronous by design. The SMS path assigns window.location.href immediately
+   * after calling this, so the request has to be issued in the same tick — an
+   * awaited hash here would yield first and the fetch might never leave. That is
+   * why the hash is precomputed on phone entry rather than at click time.
+   */
+  function logReviewSend(channel) {
+    const client = state.client;
+    if (!client || !client.nexusApiKey || !client.nexusClientSlug) return;
+
+    if (!toE164(state.phone)) {
+      // Copy works without a phone. No phone means no dedup key, and inventing a
+      // placeholder would poison dedup for every future row — so skip the event.
+      console.debug("[review-send] skipped: no phone number, cannot build dedup key");
+      return;
+    }
+    const payload = buildSendPayload(channel);
+    if (!payload) {
+      // Hash not ready (phone typed and clicked within a tick, or no crypto.subtle
+      // because the page is not on HTTPS). Best-effort async retry; may not survive
+      // the navigation, which is acceptable — the send itself is unaffected.
+      console.debug("[review-send] hash not ready, attempting async");
+      computeCustomerHash().then((h) => {
+        if (!h) return;
+        state.customerHash = h;
+        const late = buildSendPayload(channel);
+        if (late) postSendPayload(late);
+      });
+      return;
+    }
+    postSendPayload(payload);
+  }
+
   function normalizeClient(raw) {
     if (!raw || typeof raw !== "object") return null;
     const drafts = raw.draftTemplates || {};
@@ -157,6 +295,11 @@
       phone: String(raw.phone || "").trim(),
       accentColor: String(raw.accentColor || "").trim(),
       tagline: String(raw.tagline || "").trim(),
+      // Both blank on the template. Blank means send logging is simply off for
+      // that client — the tool works exactly as it did before Phase 22.
+      nexusClientSlug: String(raw.nexusClientSlug || "").trim(),
+      nexusApiKey: String(raw.nexusApiKey || "").trim(),
+      nexusBaseUrl: String(raw.nexusBaseUrl || "").trim(),
       draftTemplates: { first, repeat },
     };
   }
@@ -361,6 +504,9 @@
       const err = document.getElementById("phone-error");
       if (err) err.textContent = ok || !state.phone ? "" : "Enter a 10-digit US number";
       updateSendButton(ok);
+      // Precompute now so the click handler stays synchronous.
+      state.customerHash = "";
+      if (ok) refreshCustomerHash();
     });
 
     document.querySelectorAll(".toggle button").forEach((btn) => {
@@ -390,7 +536,11 @@
         document.getElementById("cust-phone")?.focus();
         return;
       }
-      window.location.href = buildSmsUrl(e164, currentMessage());
+      const smsUrl = buildSmsUrl(e164, currentMessage());
+      // Issued in this tick, with keepalive, then we navigate. Nothing here is
+      // awaited: the hand-off must not wait on Nexus.
+      logReviewSend("deep_link");
+      window.location.href = smsUrl;
     });
 
     copyBtn.addEventListener("click", async () => {
@@ -407,6 +557,7 @@
       }
       copyBtn.classList.add("copied");
       copyBtn.textContent = "Copied";
+      logReviewSend("copy");
       setTimeout(() => {
         copyBtn.classList.remove("copied");
         copyBtn.textContent = "Copy text";

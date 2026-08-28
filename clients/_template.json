@@ -3,6 +3,8 @@
   "bizName": "Business Name",
   "ownerName": "Owner First Name",
   "reviewLink": "https://g.page/r/YOUR_REVIEW_LINK/review",
+  "nexusClientSlug": "",
+  "nexusApiKey": "",
   "phone": "",
   "accentColor": "#2d6a4f",
   "tagline": "",
