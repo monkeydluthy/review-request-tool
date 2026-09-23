@@ -49,6 +49,7 @@ Tokens inside draft strings, replaced at preview/send time:
 |---|---|
 | `?client=toby` | Signature Tree and Home |
 | `?client=mna` | M&A Stump Grinding |
+| `?client=asm` | All Structure Maintenance |
 
 ## SMS deep links
 

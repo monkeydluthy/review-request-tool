@@ -1,0 +1,26 @@
+{
+  "slug": "asm",
+  "bizName": "All Structure Maintenance",
+  "ownerName": "Steve",
+  "reviewLink": "https://search.google.com/local/writereview?placeid=ChIJRZXTlvuBFQgRhJ5EAwos6Cg",
+  "nexusClientSlug": "",
+  "nexusApiKey": "",
+  "phone": "2032333862",
+  "accentColor": "#1d4e89",
+  "tagline": "General contractor in Meriden.",
+  "draftSource": {
+    "notes": "Casual text variants written for Steve. reviewLink is the Google write-review URL for the Meriden listing (place id ChIJRZXTlvuBFQgRhJ5EAwos6Cg). Nexus logging is off until a client slug and review-send key exist."
+  },
+  "draftTemplates": {
+    "first": [
+      "Hey {cust} — thanks for having us out today. If you've got a minute, a Google review helps other folks around Meriden find us: {link}\n\n—{owner}, {biz}",
+      "Hey {cust}, appreciate you trusting us with the job. A quick Google review means a lot: {link}\n\n—{owner}",
+      "Hey {cust} — thanks for having the crew out. Here's the link if you want to leave us a review: {link}\n\n—{owner}, {biz}"
+    ],
+    "repeat": [
+      "Hey {cust}, thanks again for calling us back. We'd be grateful for a Google review: {link}\n\n—{owner}",
+      "Hey {cust} — always good working with you again. If you're willing, a Google review helps us keep getting the word out: {link}\n\n—{owner}",
+      "Hey {cust}, thanks for having us back out. A quick Google review goes a long way: {link}\n\n—{owner}, {biz}"
+    ]
+  }
+}
