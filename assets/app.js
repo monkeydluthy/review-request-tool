@@ -496,7 +496,7 @@
     const sendBtn = document.getElementById("open-messages");
     const pickContactBtn = document.getElementById("pick-contact");
 
-    if (contactsPickerSupported() && pickContactBtn) {
+    if (contactsPickerSupported() && pickContactBtn && !pickerKnownBroken()) {
       pickContactBtn.hidden = false;
       pickContactBtn.addEventListener("click", () => pickContact(nextPickProps));
     }
@@ -509,6 +509,8 @@
           const m = String(text || "").match(/\+?\d[\d\s().-]{8,}\d/);
           if (!m) { setPickerNote("No phone number found on the clipboard."); return; }
           setField(phoneInput, m[0].replace(/[^\d+]/g, ""));
+          const nameGuess = String(text).slice(0, m.index).replace(/[^A-Za-z' -]/g, " ").trim().split(/\s+/)[0];
+          if (nameGuess && !nameInput.value) setField(nameInput, nameGuess);
         } catch {
           setPickerNote("Couldn't read the clipboard. Long-press the phone box and paste.");
         }
@@ -609,6 +611,17 @@
     return list.find((t) => toE164(t)) || list[0] || "";
   }
 
+  function pickerKnownBroken() {
+    try { return localStorage.getItem("pickerEmpty") === "2"; } catch { return false; }
+  }
+
+  function notePickerEmpty() {
+    try {
+      const n = Number(localStorage.getItem("pickerEmpty") || "0") + 1;
+      localStorage.setItem("pickerEmpty", String(Math.min(n, 2)));
+    } catch { /* ignore */ }
+  }
+
   function setPickerNote(msg) {
     const err = document.getElementById("phone-error");
     if (err) err.textContent = msg || "";
@@ -636,13 +649,18 @@
       const contact = contacts && contacts[0];
       if (!contact) {
         setPickerNote("Picker returned no contact (" + (contacts ? contacts.length : "none") + "). Try again, or paste a copied number.");
+        notePickerEmpty();
         const btn = document.getElementById("pick-contact");
-        if (btn && props.length > 1) {
+        if (btn && pickerKnownBroken()) {
+          btn.hidden = true;
+          setPickerNote("Contacts aren't available on this phone. Copy a number in Contacts and tap Paste, or type it.");
+        } else if (btn && props.length > 1) {
           nextPickProps = ["tel"];
           btn.textContent = "Try again: number only";
         }
         return;
       }
+      try { localStorage.removeItem("pickerEmpty"); } catch { /* ignore */ }
       console.debug("contact picker returned", JSON.stringify(contact));
 
       const first = firstNameFromContact(contact);
