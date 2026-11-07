@@ -613,7 +613,7 @@
     if (!nameInput || !phoneInput) return;
     try {
       try { sessionStorage.setItem("pickerPending", String(Date.now())); } catch { /* ignore */ }
-      const contacts = await navigator.contacts.select(["name", "tel"], { multiple: false });
+      const contacts = await navigator.contacts.select(["name", "tel"], { multiple: true });
       try { sessionStorage.removeItem("pickerPending"); } catch { /* ignore */ }
       const contact = contacts && contacts[0];
       if (!contact) {
