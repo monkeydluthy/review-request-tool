@@ -565,16 +565,40 @@
     });
   }
 
-  function firstNameFromContact(contact) {
-    const raw = Array.isArray(contact.name) ? contact.name[0] : contact.name;
-    if (!raw) return "";
-    return String(raw).trim().split(/\s+/)[0] || "";
+  function asList(v) {
+    if (Array.isArray(v)) return v;
+    if (v && typeof v === "object" && typeof v.length === "number") return Array.from(v);
+    return v ? [v] : [];
   }
 
+  function firstNameFromContact(contact) {
+    for (const raw of asList(contact && contact.name)) {
+      const first = String(raw || "").trim().split(/\s+/)[0];
+      if (first) return first;
+    }
+    return "";
+  }
+
+  // First number that is a valid US number; falls back to the first number so the
+  // field still fills (and shows the 10-digit hint) rather than staying empty.
   function phoneFromContact(contact) {
-    const raw = Array.isArray(contact.tel) ? contact.tel[0] : contact.tel;
-    if (!raw) return "";
-    return String(raw).replace(/[^\d+]/g, "");
+    const list = asList(contact && contact.tel)
+      .map((t) => String(t || "").replace(/\s*(ext\.?|x|#).*$/i, "").replace(/[^\d+]/g, ""))
+      .filter(Boolean);
+    return list.find((t) => toE164(t)) || list[0] || "";
+  }
+
+  function setPickerNote(msg) {
+    const err = document.getElementById("phone-error");
+    if (err) err.textContent = msg || "";
+  }
+
+  function setField(input, value) {
+    // Native setter + input/change events so the listeners always run.
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
+    setter.call(input, value);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
   }
 
   async function pickContact() {
@@ -584,23 +608,21 @@
     try {
       const contacts = await navigator.contacts.select(["name", "tel"], { multiple: false });
       const contact = contacts && contacts[0];
-      if (!contact) return;
+      if (!contact) return; // cancelled
 
       const first = firstNameFromContact(contact);
-      if (first) {
-        state.name = first;
-        nameInput.value = first;
-        nameInput.dispatchEvent(new Event("input", { bubbles: true }));
-      }
-
       const tel = phoneFromContact(contact);
-      if (tel) {
-        state.phone = tel;
-        phoneInput.value = tel;
-        phoneInput.dispatchEvent(new Event("input", { bubbles: true }));
+      if (!first && !tel) {
+        setPickerNote("That contact has no name or number to use. Type them in.");
+        console.debug("contact picker returned", JSON.stringify(contact));
+        return;
       }
-    } catch {
-      /* permission denied, cancel, or picker failed — keep manual fields as-is */
+      if (first) setField(nameInput, first);
+      if (tel) setField(phoneInput, tel);
+      else setPickerNote("That contact has no phone number. Type it in.");
+    } catch (err) {
+      console.debug("contact picker failed", err);
+      setPickerNote("Couldn't read that contact. Type the name and number in.");
     }
   }
 
