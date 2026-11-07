@@ -425,6 +425,7 @@
         <section>
           <div class="block-label">Customer</div>
           <button type="button" class="btn btn-ghost btn-contacts" id="pick-contact" hidden>Add from contacts</button>
+          <button type="button" class="btn btn-ghost btn-contacts" id="paste-number">Paste a copied number</button>
           <div class="grid-2">
             <div class="field">
               <label for="cust-name">First name</label>
@@ -497,7 +498,21 @@
 
     if (contactsPickerSupported() && pickContactBtn) {
       pickContactBtn.hidden = false;
-      pickContactBtn.addEventListener("click", pickContact);
+      pickContactBtn.addEventListener("click", () => pickContact(nextPickProps));
+    }
+
+    const pasteBtn = document.getElementById("paste-number");
+    if (pasteBtn) {
+      pasteBtn.addEventListener("click", async () => {
+        try {
+          const text = await navigator.clipboard.readText();
+          const m = String(text || "").match(/\+?\d[\d\s().-]{8,}\d/);
+          if (!m) { setPickerNote("No phone number found on the clipboard."); return; }
+          setField(phoneInput, m[0].replace(/[^\d+]/g, ""));
+        } catch {
+          setPickerNote("Couldn't read the clipboard. Long-press the phone box and paste.");
+        }
+      });
     }
 
     nameInput.addEventListener("input", (e) => {
@@ -607,17 +622,25 @@
     input.dispatchEvent(new Event("change", { bubbles: true }));
   }
 
-  async function pickContact() {
+  let nextPickProps = ["name", "tel"];
+
+  async function pickContact(props) {
+    props = Array.isArray(props) ? props : ["name", "tel"];
     const nameInput = document.getElementById("cust-name");
     const phoneInput = document.getElementById("cust-phone");
     if (!nameInput || !phoneInput) return;
     try {
       try { sessionStorage.setItem("pickerPending", String(Date.now())); } catch { /* ignore */ }
-      const contacts = await navigator.contacts.select(["name", "tel"], { multiple: true });
+      const contacts = await navigator.contacts.select(props, { multiple: true });
       try { sessionStorage.removeItem("pickerPending"); } catch { /* ignore */ }
       const contact = contacts && contacts[0];
       if (!contact) {
-        setPickerNote("Picker returned no contact (" + (contacts ? contacts.length : "none") + "). Type them in.");
+        setPickerNote("Picker returned no contact (" + (contacts ? contacts.length : "none") + "). Try again, or paste a copied number.");
+        const btn = document.getElementById("pick-contact");
+        if (btn && props.length > 1) {
+          nextPickProps = ["tel"];
+          btn.textContent = "Try again: number only";
+        }
         return;
       }
       console.debug("contact picker returned", JSON.stringify(contact));
