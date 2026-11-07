@@ -480,6 +480,12 @@
     `;
 
     bindEvents();
+    try {
+      if (sessionStorage.getItem("pickerPending")) {
+        sessionStorage.removeItem("pickerPending");
+        setPickerNote("The page reloaded while picking, so the contact was lost. Type them in.");
+      }
+    } catch { /* ignore */ }
   }
 
   function bindEvents() {
@@ -606,9 +612,15 @@
     const phoneInput = document.getElementById("cust-phone");
     if (!nameInput || !phoneInput) return;
     try {
+      try { sessionStorage.setItem("pickerPending", String(Date.now())); } catch { /* ignore */ }
       const contacts = await navigator.contacts.select(["name", "tel"], { multiple: false });
+      try { sessionStorage.removeItem("pickerPending"); } catch { /* ignore */ }
       const contact = contacts && contacts[0];
-      if (!contact) return; // cancelled
+      if (!contact) {
+        setPickerNote("Picker returned no contact (" + (contacts ? contacts.length : "none") + "). Type them in.");
+        return;
+      }
+      console.debug("contact picker returned", JSON.stringify(contact));
 
       const first = firstNameFromContact(contact);
       const tel = phoneFromContact(contact);
@@ -621,8 +633,10 @@
       if (tel) setField(phoneInput, tel);
       else setPickerNote("That contact has no phone number. Type it in.");
     } catch (err) {
+      try { sessionStorage.removeItem("pickerPending"); } catch { /* ignore */ }
       console.debug("contact picker failed", err);
-      setPickerNote("Couldn't read that contact. Type the name and number in.");
+      if (err && err.name === "AbortError") return; // cancelled / closed
+      setPickerNote("Contact picker error: " + (err && (err.name || err.message) || "unknown") + ". Type them in.");
     }
   }
 
