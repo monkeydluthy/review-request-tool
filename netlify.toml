@@ -1,6 +1,19 @@
 [build]
   publish = "."
 
+# Server-side relay for the Nexus review-send log. Keys live in Netlify env
+# vars (NEXUS_KEY_<SLUG>), never in /clients/*.json, which are public.
+[functions]
+  directory = "netlify/functions"
+
+# The site publishes "." so the function source would otherwise be served as a
+# static file. It holds no secrets, but there is no reason to serve it.
+[[redirects]]
+  from = "/netlify/*"
+  to = "/404"
+  status = 404
+  force = true
+
 [[headers]]
   for = "/clients/*"
   [headers.values]
@@ -12,4 +25,4 @@
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://nexus.digitaldynamicsolution.com; manifest-src 'self' blob:; frame-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'none'; object-src 'none'"
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; manifest-src 'self' blob:; frame-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'none'; object-src 'none'"
