@@ -149,9 +149,12 @@
   // pre-filled text to the owner; logging is bookkeeping. If Nexus is down, slow,
   // misconfigured or rejecting, the owner sees nothing and the flow is unaffected.
   // Every failure goes to console.debug and stops there.
+  //
+  // The page posts to our own Netlify Function, which adds the Nexus key on the
+  // server. No key is ever in client JSON or in the browser.
   // ---------------------------------------------------------------------
 
-  const NEXUS_BASE_URL = "https://nexus.digitaldynamicsolution.com";
+  const REVIEW_SEND_ENDPOINT = "/.netlify/functions/review-send";
 
   // The server rejects labels holding a phone number or an email, and a 422 loses
   // the whole event. A weird name should cost us the label, not the row.
@@ -199,7 +202,7 @@
 
   function buildSendPayload(channel) {
     const client = state.client;
-    if (!client || !client.nexusApiKey || !client.nexusClientSlug) return null;
+    if (!client || !client.nexusClientSlug) return null;
     if (!state.customerHash) return null;
 
     const drafts = draftsForType();
@@ -221,16 +224,13 @@
   }
 
   function postSendPayload(payload) {
-    const base = state.client.nexusBaseUrl || NEXUS_BASE_URL;
-    // keepalive, not sendBeacon: the request needs the X-Review-Send-Key header,
-    // and sendBeacon cannot set one. keepalive lets it survive the sms: hand-off.
-    return fetch(`${base}/api/v1/review-sends`, {
+    // keepalive lets the request survive the sms: hand-off. Same-origin, so no
+    // preflight; the function adds the X-Review-Send-Key header server-side.
+    return fetch(REVIEW_SEND_ENDPOINT, {
       method: "POST",
       keepalive: true,
-      headers: {
-        "Content-Type": "application/json",
-        "X-Review-Send-Key": state.client.nexusApiKey,
-      },
+      credentials: "omit",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     })
       .then((res) => {
@@ -251,7 +251,7 @@
    */
   function logReviewSend(channel) {
     const client = state.client;
-    if (!client || !client.nexusApiKey || !client.nexusClientSlug) return;
+    if (!client || !client.nexusClientSlug) return;
 
     if (!toE164(state.phone)) {
       // Copy works without a phone. No phone means no dedup key, and inventing a
@@ -287,6 +287,11 @@
     if (!bizName || !ownerName || !reviewLink || (!first.length && !repeat.length)) {
       return null;
     }
+    if ("nexusApiKey" in raw || "nexusBaseUrl" in raw) {
+      // Ignored. Keys live in Netlify env vars and the Nexus URL is fixed
+      // server-side. The value is never read or logged here.
+      console.debug("[review-send] ignoring nexusApiKey/nexusBaseUrl in client JSON; remove them");
+    }
     return {
       slug: String(raw.slug || slug),
       bizName,
@@ -295,11 +300,9 @@
       phone: String(raw.phone || "").trim(),
       accentColor: String(raw.accentColor || "").trim(),
       tagline: String(raw.tagline || "").trim(),
-      // Both blank on the template. Blank means send logging is simply off for
-      // that client — the tool works exactly as it did before Phase 22.
+      // Blank on the template. Blank means send logging is simply off for that
+      // client — the tool works exactly as it did before Phase 22. Not secret.
       nexusClientSlug: String(raw.nexusClientSlug || "").trim(),
-      nexusApiKey: String(raw.nexusApiKey || "").trim(),
-      nexusBaseUrl: String(raw.nexusBaseUrl || "").trim(),
       draftTemplates: { first, repeat },
     };
   }

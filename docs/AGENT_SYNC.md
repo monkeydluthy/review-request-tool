@@ -56,6 +56,9 @@ Rules that must still hold after conversion:
 3. Rewrite tokens as above.
 4. Confirm `reviewLink` matches the client brain.
 5. Commit the JSON file. Do not touch `index.html`, CSS, or JS.
+   Client JSON is public (served at `/clients/{slug}.json`). Never put a key,
+   token or password in it. Nexus send-log keys live in Netlify env vars; see
+   the README.
 6. Open `?client={slug}` and preview every card before sending the URL to the owner.
 
 ## Helper script
@@ -72,7 +75,9 @@ python3 scripts/sync_from_agent.py \
 ```
 
 The script prints a `draftTemplates` object. Paste it into the client JSON
-(or pass `--write` to merge it into `clients/{slug}.json`).
+(or pass `--write` to merge it into `clients/{slug}.json`). `--write` only
+touches `draftTemplates`, and strips a leftover `nexusApiKey` if it finds one.
+Run `node scripts/check_clients.js` before committing.
 
 ## Later (not v1)
 

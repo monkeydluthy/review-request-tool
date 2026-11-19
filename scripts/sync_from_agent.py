@@ -105,6 +105,12 @@ def main() -> None:
         if not dest.exists():
             raise SystemExit(f"Missing {dest}. Copy clients/_template.json first.")
         data = json.loads(dest.read_text())
+        # Client JSON is served publicly at /clients/{slug}.json. Never let a key
+        # ride along: Nexus keys live in Netlify env vars (NEXUS_KEY_<SLUG>).
+        for field in ("nexusApiKey", "nexusBaseUrl"):
+            if field in data:
+                data.pop(field)
+                print(f"Removed {field} from {dest.name} (keys belong in Netlify env vars, not client JSON)")
         data["draftTemplates"] = templates
         dest.write_text(json.dumps(data, indent=2) + "\n")
         print(f"\nWrote drafts into {dest}")
