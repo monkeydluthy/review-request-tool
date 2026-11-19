@@ -1,0 +1,27 @@
+{
+  "slug": "dages",
+  "bizName": "Dages Services",
+  "ownerName": "Joe",
+  "reviewLink": "https://search.google.com/local/writereview?placeid=ChIJRw7C8K0z3YgRnjTrItZ1M2g",
+  "nexusClientSlug": "",
+  "phone": "8137169436",
+  "accentColor": "#1F5133",
+  "tagline": "We remove the trees other tree services can't or won't.",
+  "draftSource": {
+    "agent": "manual",
+    "clientBrain": "",
+    "notes": "Drafted 2026-11-18 from the Dages site voice and the 11/4 meeting with Joe. Pending Joe's approval. reviewLink is the Google write-review URL already used on dagesservices.com. Facebook review link not added yet."
+  },
+  "draftTemplates": {
+    "first": [
+      "Hey {cust}, thanks for having us out today. If you've got a minute, a Google review helps other neighbors find us: {link}\n\n—{owner}, {biz}",
+      "Hey {cust}, appreciate you trusting us with the job. A quick Google review means a lot to a family-run crew like ours: {link}\n\n—{owner}",
+      "Hey {cust}, thanks again for having us out. We'd be grateful for a Google review when you get a chance: {link}\n\n—{owner}, {biz}"
+    ],
+    "repeat": [
+      "Hey {cust}, thanks for calling us back. If you're willing, a Google review helps us keep serving neighbors around Tampa Bay: {link}\n\n—{owner}",
+      "Hey {cust}, always good working with you again. We'd be grateful for a quick Google review when you get a chance: {link}\n\n—{owner}, {biz}",
+      "Hey {cust}, thanks for trusting us with another one. A Google review from you would mean a lot: {link}\n\n—{owner}"
+    ]
+  }
+}
